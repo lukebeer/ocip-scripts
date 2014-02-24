@@ -25,7 +25,7 @@
             }
 */
 header('Content-type: application/json');
-require_once 'bw-scripts_config.php';
+require_once 'config.php';
 Factory::getOCISchemaSearchCriteria();
 $client = CoreFactory::getOCIClient(OCIP_HOST);
 $client->login(OCIP_USER, OCIP_PASS);
