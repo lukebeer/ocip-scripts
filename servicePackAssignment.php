@@ -4,7 +4,7 @@
  * Date: 24/03/14
  * Time: 12:30
  */
-require_once '../Broadworks_OCI-P/common.php';
+require_once 'config.php';
 Factory::getOCISchemaSystem();
 $client = CoreFactory::getOCIClient(OCIP_HOST);
 $client->login(OCIP_USER, OCIP_PASS);
@@ -16,8 +16,10 @@ if ($client->send(OCISchemaUser::UserGetListInServiceProviderRequest($argv[1])))
         $client->send(OCISchemaUser::UserServiceGetAssignmentListRequest($userId));
         $sps = null;
         foreach ($client->getResponse()->servicePacksAssignmentTable['row'] as $row) {
-            if ($row['col'][1] == 'true') {
-                $sps[] = $row['col'][0];
+            if (array_key_exists('col', $row)) {
+                if ($row['col'][1] == 'true') $sps[] = $row['col'][0];
+            } else {
+                if ($row[1] == 'true') $sps[] = $row[0];
             }
         }
         if ($sps) echo "$userId,".implode(',',$sps)."\n";
