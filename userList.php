@@ -68,5 +68,5 @@ foreach ($userTable as $row) {
     $bar->update($current);
     fputcsv($fh, $userDetails);
 }
-echo "\n";
+echo "\nWrote file: $filename\n";
 ?>
