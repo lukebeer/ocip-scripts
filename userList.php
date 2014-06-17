@@ -1,6 +1,6 @@
 <?php
 /**
- * Default user and device audit for enterprise and groups
+ * Description: User list and device report to csv by enterprise or system
  * Date: 27/05/14
  * Time: 12:30
  * Author: Luke Beer
