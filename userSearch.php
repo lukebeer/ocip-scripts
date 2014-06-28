@@ -26,9 +26,12 @@
 */
 header('Content-type: application/json');
 require_once 'config.php';
+ini_set("display_errors", 0);
+Factory::getOCISchemaSystem();
 Factory::getOCISchemaSearchCriteria();
 $client = CoreFactory::getOCIClient(OCIP_HOST);
 $client->login(OCIP_USER, OCIP_PASS);
+$results = [];
 switch(@$argv[1]) {
     case 'lastname':
         $lastName = OCIBuilder::buildSearch(OCISchemaSearchCriteria::SearchCriteriaUserLastName(OCISearchModes::CONTAINS, $argv[2], true));
@@ -42,17 +45,31 @@ switch(@$argv[1]) {
         $dn = OCIBuilder::buildSearch(OCISchemaSearchCriteria::searchCriteriaDn(OCISearchModes::CONTAINS, $argv[2], true));
         $client->send(OCISchemaUser::UserGetListInSystemRequest(null, null, null, $dn));
         break;
+    case 'id':
+        $client->send(OCISchemaUser::UserGetRequest17sp4($argv[2]));
+        break;
+    case 'uri':
+        $registrationURI = OCIBuilder::buildSearch(OCISchemaSearchCriteria::SearchCriteriaRegistrationURI(OCISearchModes::CONTAINS, $argv[2], true));
+        $client->send(OCISchemaSystem::SystemGetRegistrationContactListRequest(null, null, null, $registrationURI));
+        break;
     default:
         die("Provide a search criteria, eg: 'php findUser.php lastname bloggs'\n");
 }
 if ($response = $client->getResponse()) {
-    if (!array_key_exists('row', $response->userTable)) die("No results\n");
-    foreach($response->userTable['row'] as $item) {
-        $item = (array_key_exists('col', $item)) ? $item['col'] : $item;
-        $results[] = ['User ID' => $item[0], 'Group ID' => $item[1], 'ServiceProviderID' => $item[2], 'Last Name' => $item[3],
-            'First Name' => $item[4], 'Department' => $item[5], 'Phone Number' => $item[6], 'Phone Number Activated' => $item[7],
-            'Email Address' => $item[8], 'In Trunk Group?' => $item[11]
-        ];
+    if (property_exists($response, 'userTable')) {
+        if (array_key_exists('row', $response->userTable)) {
+            foreach($response->userTable['row'] as $item) {
+                $item = (array_key_exists('col', $item)) ? $item['col'] : $item;
+                $results[] = ['User ID' => $item[0], 'Group ID' => $item[1], 'ServiceProviderID' => $item[2], 'Last Name' => $item[3],
+                    'First Name' => $item[4], 'Department' => $item[5], 'Phone Number' => $item[6], 'Phone Number Activated' => $item[7],
+                    'Email Address' => $item[8], 'In Trunk Group?' => $item[11]
+                ];
+            }
+        } else {
+            die("No results\n");
+        }
+    } else {
+        $results = $response;
     }
 }
 $data = json_encode(['results' => $results, 'errors' => $errorControl->getErrors()], JSON_PRETTY_PRINT);
