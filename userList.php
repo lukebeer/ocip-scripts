@@ -9,6 +9,7 @@
 require_once 'config.php';
 require_once 'Console/ProgressBar.php';
 ini_set("max_execution_time", 0);
+date_default_timezone_set('Europe/London');
 error_reporting(E_ALL ^ E_NOTICE ^ E_WARNING);
 Factory::getOCISchemaServiceProvider();
 Factory::getOCISchemaGroup();
@@ -21,13 +22,13 @@ $request = (empty($enterpriseId))
     : OCISchemaUser::UserGetListInServiceProviderRequest($enterpriseId);
 
 $filename = (empty($enterpriseId))
-    ? 'system_'.date('d-m-Y_H:i:s').'_enterpriseList.csv'
-    : $enterpriseId.'_'.date('d-m-Y_H:i:s').'_enterpriseList.csv';
+    ? 'system_'.date('d-m-Y_H-i-s').'_enterpriseList.csv'
+    : $enterpriseId.'_'.date('d-m-Y_H-i-s').'_enterpriseList.csv';
 
 $fh = fopen($filename, 'w');
 fputcsv($fh, ['userId', 'serviceProviderId', 'groupId', 'lastName', 'firstName', 'callingLineIdLastName', 'callingLineIdFirstName',
     'callingLineIdPhoneNumber', 'phoneNumber', 'departmentFullPath', 'language', 'timeZone', 'countryCode', 'nationalPrefix',
-    'linePort', 'deviceType', 'macAddress']);
+    'macAddress', 'deviceType', 'URI', 'currentTime', 'Expiration', 'LinePort']);
 
 $msg = "Fetching users......";
 echo $msg;
@@ -43,26 +44,40 @@ $bar = new Console_ProgressBar('[%bar%] [current:%current% -%percent% elapsed: %
 foreach ($userTable as $row) {
     $userDetails = null;
     $client->send(OCISchemaUser::UserGetRequest17sp4($row['col'][0]));
+    $userResponse = $client->getResponse();
+    $client->send(OCISchemaUser::UserGetRegistrationListRequest($row['col'][0]));
+    $registrationResponse = $client->getResponse();
     $userDetails['userId'] = $row['col'][0];
-    $userDetails['serviceProviderId'] = $client->getResponse()->serviceProviderId;
-    $userDetails['groupId'] = $client->getResponse()->groupId;
-    $userDetails['lastName'] = $client->getResponse()->lastName;
-    $userDetails['firstName'] = $client->getResponse()->firstName;
-    $userDetails['callingLineIdLastName'] = $client->getResponse()->callingLineIdLastName;
-    $userDetails['callingLineIdFirstName'] = $client->getResponse()->callingLineIdFirstName;
-    $userDetails['callingLineIdPhoneNumber'] = $client->getResponse()->callingLineIdPhoneNumber;
-    $userDetails['phoneNumber'] = $client->getResponse()->phoneNumber;
-    $userDetails['departmentFullPath'] = $client->getResponse()->departmentFullPath;
-    $userDetails['language'] = $client->getResponse()->language;
-    $userDetails['timeZone'] = $client->getResponse()->timeZone;
-    $userDetails['countryCode'] = $client->getResponse()->countryCode;
-    $userDetails['nationalPrefix'] = $client->getResponse()->nationalPrefix;
-    if (property_exists($client->getResponse(), 'accessDeviceEndpoint')) {
-        $userDetails['linePort'] = $client->getResponse()->accessDeviceEndpoint['linePort'];
-        $client->send(OCISchemaGroup::GroupAccessDeviceGetRequest16($_GET['id'], $client->getResponse()->groupId,
-            $client->getResponse()->accessDeviceEndpoint['accessDevice']['deviceName']));
-        $userDetails['deviceType'] = $client->getResponse()->deviceType;
-        $userDetails['macAddress'] = $client->getResponse()->macAddress;
+    $userDetails['serviceProviderId'] = $userResponse->serviceProviderId;
+    $userDetails['groupId'] = $userResponse->groupId;
+    $userDetails['lastName'] = $userResponse->lastName;
+    $userDetails['firstName'] = $userResponse->firstName;
+    $userDetails['callingLineIdLastName'] = $userResponse->callingLineIdLastName;
+    $userDetails['callingLineIdFirstName'] = $userResponse->callingLineIdFirstName;
+    $userDetails['callingLineIdPhoneNumber'] = $userResponse->callingLineIdPhoneNumber;
+    $userDetails['phoneNumber'] = $userResponse->phoneNumber;
+    $userDetails['departmentFullPath'] = $userResponse->departmentFullPath;
+    $userDetails['language'] = $userResponse->language;
+    $userDetails['timeZone'] = $userResponse->timeZone;
+    $userDetails['countryCode'] = $userResponse->countryCode;
+    $userDetails['nationalPrefix'] = $userResponse->nationalPrefix;
+    if (property_exists($userResponse, 'accessDeviceEndpoint')) {
+        $client->send(OCISchemaGroup::GroupAccessDeviceGetRequest16($_GET['id'], $userResponse->groupId,
+            $userResponse->accessDeviceEndpoint['accessDevice']['deviceName']));
+        $deviceResponse = $client->getResponse();
+        $userDetails['macAddress'] = $deviceResponse->macAddress;
+        $userDetails['deviceType'] = $userResponse->accessDeviceEndpoint['accessDevice']['deviceType'];
+        if (array_key_exists('row', $registrationResponse->registrationTable)) {
+            foreach ($registrationResponse->registrationTable['row'] as $registration) {
+                $registration = (array_key_exists('col', $registration)) ? $registration['col'] : $registration;
+                if ($registration[1] == $userResponse->accessDeviceEndpoint['accessDevice']['deviceName']) {
+                    $userDetails['URI'] = $registration[3];
+                    $userDetails['currentTime'] = date("D M j G:i:s T Y");
+                    $userDetails['Expiration'] = $registration[4];
+                    $userDetails['LinePort'] = $registration[5];
+                }
+            }
+        }
     }
     $current++;
     $bar->update($current);
