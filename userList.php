@@ -62,11 +62,11 @@ foreach ($userTable as $row) {
     $userDetails['countryCode'] = $userResponse->countryCode;
     $userDetails['nationalPrefix'] = $userResponse->nationalPrefix;
     if (property_exists($userResponse, 'accessDeviceEndpoint')) {
-        $client->send(OCISchemaGroup::GroupAccessDeviceGetRequest16($_GET['id'], $userResponse->groupId,
+        $client->send(OCISchemaGroup::GroupAccessDeviceGetRequest16($userResponse->serviceProviderId, $userResponse->groupId,
             $userResponse->accessDeviceEndpoint['accessDevice']['deviceName']));
         $deviceResponse = $client->getResponse();
         $userDetails['macAddress'] = $deviceResponse->macAddress;
-        $userDetails['deviceType'] = $userResponse->accessDeviceEndpoint['accessDevice']['deviceType'];
+        $userDetails['deviceType'] = $deviceResponse->deviceType;
         if (array_key_exists('row', $registrationResponse->registrationTable)) {
             foreach ($registrationResponse->registrationTable['row'] as $registration) {
                 $registration = (array_key_exists('col', $registration)) ? $registration['col'] : $registration;
