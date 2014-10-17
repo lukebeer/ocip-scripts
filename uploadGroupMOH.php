@@ -14,7 +14,7 @@ $department                          = null;
 $isActiveDuringCallHold              = 'true';
 $isActiveDuringCallPark              = 'true';
 $isActiveDuringBusyCampOn            = 'true';
-$useAlternateSourceForInternalCalls  = 'true';
+$useAlternateSourceForInternalCalls  = 'false';
 // End config
 
 require_once 'config.php';
@@ -42,9 +42,9 @@ if ($intmusic  = @file_get_contents($argv[3])) {
     $source['customSource']['audioFile']['mediaType']   = 'WAV';
     $source['customSource']['audioFile']['content']     = base64_encode($intmusic);
 } else {
-    $useAlternateSourceForInternalCalls = FALSE;
+    $useAlternateSourceForInternalCalls = 'false';
     $internalSource = null;
-    echo "Notice: Not using alternate music source for internal calls\n";
+    echo "Notice: Not using alternate music source for internal calls, no internal music file provided as argument.\n\n";
 }
 
 foreach ($rows as $row) {
