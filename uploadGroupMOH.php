@@ -17,14 +17,13 @@ $isActiveDuringBusyCampOn            = 'true';
 $useAlternateSourceForInternalCalls  = 'true';
 // End config
 
-
 require_once 'config.php';
 require_once OCIP_BASEPATH . 'core/OCIClient.php';
 ini_set("max_execution_time", 0);
 Factory::getOCISchemaServiceMusicOnHold();
-
-ini_set("display_errors", 1);
-ini_set("error_reporting", E_ALL);
+$client = CoreFactory::getOCIClient(OCIP_HOST);
+$client->login(OCIP_USER, OCIP_PASS);
+$client->setTimeout(60);
 
 if (!$rows = file($argv[1])) die("Something went wrong reading the CSV");
 if ($extmusic  = file_get_contents($argv[2])) {
@@ -47,10 +46,6 @@ if ($intmusic  = @file_get_contents($argv[3])) {
     $internalSource = null;
     echo "Notice: Not using alternate music source for internal calls\n";
 }
-
-$client = CoreFactory::getOCIClient(OCIP_HOST);
-$client->login(OCIP_USER, OCIP_PASS);
-$client->setTimeout(60);
 
 foreach ($rows as $row) {
     $detail = str_getcsv($row);
